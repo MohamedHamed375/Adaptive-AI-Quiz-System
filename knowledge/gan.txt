@@ -1,0 +1,10 @@
+Generative Adversarial Networks consist of a Generator and a Discriminator.
+The generator produces synthetic data to fool the discriminator.
+The discriminator evaluates whether data is real or generated.
+GANs are trained using a minimax game between the generator and discriminator.
+The generator improves by learning from discriminator feedback.
+A common training issue in GANs is mode collapse.
+GAN training is often unstable and sensitive to hyperparameters.
+The discriminator should not become too strong early in training.
+Wasserstein GAN improves training stability by modifying the loss function.
+GANs are widely used in image generation and data augmentation.

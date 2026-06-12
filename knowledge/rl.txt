@@ -1,0 +1,10 @@
+Reinforcement Learning is a learning paradigm where an agent learns by interacting with an environment.
+The agent receives rewards or penalties based on its actions.
+The goal of reinforcement learning is to maximize cumulative reward over time.
+An RL problem is typically modeled as a Markov Decision Process.
+Exploration allows the agent to discover new actions, while exploitation uses known information.
+The epsilon-greedy strategy balances exploration and exploitation.
+Q-learning is a model-free reinforcement learning algorithm.
+Q-learning updates action values based on observed rewards and future estimates.
+The learning rate controls how quickly new information overrides old knowledge.
+The discount factor determines the importance of future rewards.

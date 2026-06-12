@@ -1,0 +1,222 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Results</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <div class="card">
+
+    <!-- ===== Header ===== -->
+    <div class="top">
+      <div>
+        <h1>Session Results</h1>
+        <div class="muted">Summary + charts + per-topic analysis</div>
+      </div>
+      <a class="link" href="/">New Session</a>
+    </div>
+
+    <!-- ===== Global KPIs ===== -->
+    <div class="grid">
+      <div class="kpi">
+        <div class="kpiTitle">Final Accuracy</div>
+        <div class="kpiValue" id="acc">-</div>
+      </div>
+      <div class="kpi">
+        <div class="kpiTitle">Avg Chosen Difficulty</div>
+        <div class="kpiValue" id="avgd">-</div>
+      </div>
+      <div class="kpi">
+        <div class="kpiTitle">Time in Hard</div>
+        <div class="kpiValue" id="hardpct">-</div>
+      </div>
+    </div>
+
+    <!-- ===== Charts ===== -->
+    <div class="charts">
+      <div class="chartBox"><canvas id="levelChart"></canvas></div>
+      <div class="chartBox"><canvas id="accChart"></canvas></div>
+      <div class="chartBox"><canvas id="rewardChart"></canvas></div>
+      <div class="chartBox"><canvas id="diffChart"></canvas></div>
+    </div>
+
+    <!-- ===== Per Topic Metrics ===== -->
+    <h3>Per-Topic Performance</h3>
+    <div id="topics" class="grid"></div>
+
+    <!-- ===== AI Feedback ===== -->
+    <h3>AI Feedback</h3>
+    <div id="feedback" class="feedbackBox">Loading feedback...</div>
+
+    <!-- ===== Agent Reasoning ===== -->
+    <h3>Agent Reasoning</h3>
+    <div id="reasoning" class="feedbackBox">Loading reasoning...</div>
+
+    <!-- ===== Session Log ===== -->
+    <h3>Session Log</h3>
+    <div class="tableWrap">
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Topic</th>
+            <th>State</th>
+            <th>AI Difficulty</th>
+            <th>Ans</th>
+            <th>Correct</th>
+            <th>Reward</th>
+            <th>Next</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    function rollingAvg(arr, w) {
+      return arr.map((_, i) => {
+        const s = Math.max(0, i - w + 1);
+        const win = arr.slice(s, i + 1);
+        return win.reduce((a, b) => a + b, 0) / win.length;
+      });
+    }
+
+    async function loadSummary() {
+      const res = await fetch("/api/summary");
+      const out = await res.json();
+
+      /* =========================
+         OVERALL METRICS
+      ========================= */
+      const m = out.overall_metrics;
+
+      document.getElementById("acc").textContent =
+        (m.final_accuracy * 100).toFixed(1) + "%";
+
+      document.getElementById("avgd").textContent =
+        m.avg_chosen_difficulty.toFixed(2);
+
+      document.getElementById("hardpct").textContent =
+        (m.time_in_levels_pct.Hard ?? 0).toFixed(1) + "%";
+
+      /* =========================
+         CHARTS
+      ========================= */
+      const levels = out.traces.levels;
+      const acc = out.traces.acc;
+      const rewards = out.traces.rewards;
+      const actions = out.traces.actions;
+
+      const x = levels.map((_, i) => i + 1);
+
+      new Chart(levelChart, {
+        type: "line",
+        data: { labels: x, datasets: [{ label: "Level (0 Easy, 2 Hard)", data: levels }] }
+      });
+
+      new Chart(accChart, {
+        type: "line",
+        data: {
+          labels: x,
+          datasets: [{ label: "Accuracy (rolling 10)", data: rollingAvg(acc, 10) }]
+        },
+        options: { scales: { y: { min: 0, max: 1 } } }
+      });
+
+      new Chart(rewardChart, {
+        type: "line",
+        data: { labels: x, datasets: [{ label: "Reward", data: rewards }] }
+      });
+
+      const counts = [0, 0, 0];
+      actions.forEach(a => counts[a]++);
+
+      new Chart(diffChart, {
+        type: "bar",
+        data: {
+          labels: ["Easy", "Medium", "Hard"],
+          datasets: [{ label: "Chosen difficulty", data: counts }]
+        }
+      });
+
+      /* =========================
+         PER-TOPIC PERFORMANCE
+      ========================= */
+      const topicsDiv = document.getElementById("topics");
+      topicsDiv.innerHTML = "";
+
+      for (const [topic, t] of Object.entries(out.per_topic_metrics)) {
+        const box = document.createElement("div");
+        box.className = "kpi";
+        box.innerHTML = `
+          <div class="kpiTitle">${topic}</div>
+          <div class="muted">Accuracy: ${(t.accuracy * 100).toFixed(1)}%</div>
+          <div class="muted">Avg Difficulty: ${t.avg_difficulty.toFixed(2)}</div>
+          <div class="muted">Avg Reward: ${t.avg_reward.toFixed(2)}</div>
+          <div class="muted">Time in Hard: ${t.time_in_hard_pct.toFixed(1)}%</div>
+        `;
+        topicsDiv.appendChild(box);
+      }
+
+      /* =========================
+         AI FEEDBACK
+      ========================= */
+      document.getElementById("feedback").textContent =
+        out.ai_feedback || "No feedback generated.";
+
+      /* =========================
+         AGENT REASONING DISPLAY
+      ========================= */
+      const reasoningDiv = document.getElementById("reasoning");
+      reasoningDiv.innerHTML = "";
+
+      if (out.reasoning && out.reasoning.length > 0) {
+        out.reasoning.forEach(r => {
+          reasoningDiv.innerHTML += `
+            <div style="margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #ddd;">
+              <strong>Step ${r.step}</strong><br/>
+              Topic: ${r.topic}<br/>
+              State before: ${r.state_before}<br/>
+              Chosen difficulty: ${r.chosen_difficulty}<br/>
+              Tool used: ${r.tool_used}<br/>
+              Retrieved knowledge: ${r.retrieved_context || "None"}<br/>
+              Reason: ${r.decision_reason}
+            </div>
+          `;
+        });
+      } else {
+        reasoningDiv.textContent = "No reasoning available.";
+      }
+
+      /* =========================
+         SESSION LOG
+      ========================= */
+      const tbody = document.querySelector("#logTable tbody");
+      tbody.innerHTML = "";
+
+      out.history.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.qnum}</td>
+          <td>${r.topic}</td>
+          <td>${r.state_before}</td>
+          <td>${r.difficulty}</td>
+          <td>${r.answer}</td>
+          <td>${r.correct_option}</td>
+          <td>${r.reward.toFixed(2)}</td>
+          <td>${r.state_after}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    loadSummary();
+  </script>
+
+</body>
+</html>

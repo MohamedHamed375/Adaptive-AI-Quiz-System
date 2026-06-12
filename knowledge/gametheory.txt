@@ -1,0 +1,10 @@
+Game theory studies strategic interactions between rational agents.
+A game consists of players, actions, and payoffs.
+Players choose strategies to maximize their own utility.
+A Nash equilibrium occurs when no player benefits from changing strategy unilaterally.
+Games can be cooperative or non-cooperative.
+Zero-sum games involve one player's gain being another player's loss.
+Payoff matrices represent outcomes for different strategy combinations.
+Repeated games allow strategies to depend on past actions.
+In repeated games, cooperation can emerge through future reward consideration.
+Game theory is widely used in economics, AI, and multi-agent systems.

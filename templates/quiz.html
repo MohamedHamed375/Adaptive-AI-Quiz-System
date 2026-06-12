@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Adaptive Quiz</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="card">
+    <div class="top">
+      <div>
+        <h1>Quiz</h1>
+        <div class="muted" id="counter">Question 0 / 0</div>
+      </div>
+      <a class="link" href="/">Restart</a>
+    </div>
+
+    <div class="meta">
+      <span id="level">Level: -</span>
+      <span id="chosen">AI chose: -</span>
+      <span id="eps">ε: -</span>
+    </div>
+
+    <div class="bar">
+      <div id="barfill" class="barfill" style="width: 0%"></div>
+    </div>
+
+    <h2 id="question">Loading question...</h2>
+
+    <div class="options">
+      <button class="opt" data-choice="A" id="A">A</button>
+      <button class="opt" data-choice="B" id="B">B</button>
+      <button class="opt" data-choice="C" id="C">C</button>
+      <button class="opt" data-choice="D" id="D">D</button>
+    </div>
+
+    <!-- feedback after answering -->
+    <div id="result" class="result"></div>
+  </div>
+
+  <!-- IMPORTANT:
+       quiz.js must:
+       1) check if data.done === true → redirect to /results
+       2) disable buttons after submit
+       3) show correct / wrong feedback briefly
+  -->
+  <script src="/static/quiz.js"></script>
+</body>
+</html>
